@@ -382,12 +382,21 @@ Error is given as MSG and reported between POS and END."
            (beginning-of-line)
            (forward-line)
            (insert (concat (match-string 1 msg) " = _\n"))))
-       (when (string-match "add (\\(.*\\)) to the context of.*\sthe type signature for:[ \n]*\\([^ ]*\\) ::" msg)
+       (when (string-match "Possible fix:[ \n]*add (\\(.*\\)) to the context of[^b-a]+?the type signature for:[^b-a] *\\([^ ]+\\) ::" msg)
          (attrap-one-option 'add-constraint-to-context
            (let ((missing-constraint (match-string 1 msg))
                  (function-name (match-string 2 msg)))
              (search-backward-regexp (concat (regexp-quote function-name) "[ \t]*::[ \t]*" )) ; find type sig
              (goto-char (match-end 0))
+             (when (looking-at "forall\\|∀") ; skip quantifiers
+               (search-forward "."))
+             (skip-chars-forward "\n\t ") ; skip spaces
+             (insert (concat missing-constraint " => ")))))
+       (when (string-match "Possible fix:[ \n]*add (\\(.*\\)) to the context of the instance declaration[^b-a]+?In the instance declaration for ‘\\([^ ]+\\)" msg)
+         (attrap-one-option 'add-suggested-constraint-to-instance-context
+           (let ((missing-constraint (match-string 1 msg)))
+             (search-forward-regexp "instance ") ; find type sig
+             ;; (goto-char (match-end 0))
              (when (looking-at "forall\\|∀") ; skip quantifiers
                (search-forward "."))
              (skip-chars-forward "\n\t ") ; skip spaces
